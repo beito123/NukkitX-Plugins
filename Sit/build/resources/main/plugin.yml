@@ -1,0 +1,21 @@
+name: Sit
+version: 2.0.0
+description: "You can sit here!"
+author: beito3
+api: ["1.0.9"]
+main: com.gmx.mattcha.sit.MainClass
+load: STARTUP
+
+commands:
+  sit:
+    description: "Sit here"
+    usage: "/sit"
+    permission: sit.command.sit
+
+permissions:
+  sit:
+    children:
+      sit.command:
+        children:
+          sit.command.sit:
+            default: true

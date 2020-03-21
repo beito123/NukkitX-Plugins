@@ -1,0 +1,7 @@
+# for IntelliJ IDEA
+/.idea/*
+
+# no need
+/dist/*
+/.gradle/*
+*.cmd
