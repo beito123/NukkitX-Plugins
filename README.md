@@ -1,6 +1,6 @@
-# Nukkit-Plugins-sub
+# NukkitX-Plugins
 
-My bad plugins for NukkiX
+My bad plugins for NukkiX(API 1.0.9)
 
 # Build
 
