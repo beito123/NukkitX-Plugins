@@ -10,20 +10,19 @@ package com.gmx.mattcha.sit;
 */
 
 import cn.nukkit.Player;
+import cn.nukkit.Server;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockStairs;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.entity.EntityDespawnEvent;
-import cn.nukkit.event.player.PlayerBedEnterEvent;
-import cn.nukkit.event.player.PlayerDeathEvent;
-import cn.nukkit.event.player.PlayerInteractEvent;
-import cn.nukkit.event.player.PlayerTeleportEvent;
+import cn.nukkit.event.player.*;
 import cn.nukkit.event.server.DataPacketReceiveEvent;
+import cn.nukkit.level.Position;
 import cn.nukkit.math.Vector3f;
 import cn.nukkit.network.protocol.InteractPacket;
 import cn.nukkit.network.protocol.ProtocolInfo;
-import cn.nukkit.utils.TextFormat;
+import com.gmx.mattcha.sit.entity.Chair;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,14 +35,50 @@ public class EventListener implements Listener {
     private MainClass plugin;
 
     private Map<UUID, Long> tempTap = new HashMap<>();
-    private Map<UUID, Long> tempSitBlock = new HashMap<>();
+    private Map<UUID, Long> tempSitBlock = new HashMap<>(); // for bad hack
+    private Map<UUID, TempData> tempJustStoodup = new HashMap<>(); // for bad hack
+
+    static class TempData { // for bad hack
+        public Long timestamp;
+        public Position pos;
+
+        public TempData(Long timestamp, Position pos) {
+            this.timestamp = timestamp;
+            this.pos = pos;
+        }
+    }
 
     public EventListener(MainClass plugin) {
         this.plugin = plugin;
     }
 
     @EventHandler
-    public void onTap(PlayerInteractEvent event) {
+    public void onKick(PlayerKickEvent event) { // for bad hack
+        Player player = event.getPlayer();
+        if (!this.tempJustStoodup.containsKey(player.getUniqueId())) {
+            return;
+        }
+        if (event.getReasonEnum() != PlayerKickEvent.Reason.FLYING_DISABLED) {
+            return;
+        }
+
+        TempData data = this.tempJustStoodup.get(player.getUniqueId());
+
+        if (System.currentTimeMillis() - data.timestamp > 1000 * 5) { // 5s
+            return;
+        }
+
+        if (player.distance(data.pos) < 10D && player.level.getName().equals(data.pos.getLevel().getName())) {
+            event.setCancelled();
+        }
+    }
+
+    @EventHandler
+    public void onTapBlock(PlayerInteractEvent event) {
+        if (!this.plugin.enabledTapWarp) {
+            return;
+        }
+
         Player player = event.getPlayer();
         if (!this.plugin.hasSat(player)) {
             return;
@@ -63,7 +98,7 @@ public class EventListener implements Listener {
 
                 this.plugin.sitPlayer(player, block.add(0.5, 1.6, 0.5), new Vector3f(0 , 0, 0));
 
-                player.sendTip(TextFormat.GOLD + "Jump to stand up" + TextFormat.RESET);
+                this.plugin.msg.sendTip(player, "sit.tapwarp.atStair.ok");
             }
         }
 
@@ -96,18 +131,17 @@ public class EventListener implements Listener {
     public void onActionPacket(DataPacketReceiveEvent event) {
         if (event.getPacket().pid() == ProtocolInfo.INTERACT_PACKET) {
             Player player = event.getPlayer();
-            tempSitBlock.put(player.getUniqueId(), System.currentTimeMillis());
 
-            if (player.getRiding() == null || !(player.getRiding() instanceof Chair)) {
+            if (!this.plugin.hasSat(player)) {
                 return;
             }
 
             InteractPacket pk = (InteractPacket) event.getPacket();
 
             if (pk.action == ACTION_VEHICLE_EXIT) {
-                if (tempSitBlock.containsKey(player.getUniqueId())) { // bad hack :P
+                if (this.plugin.enabledTapWarp && tempSitBlock.containsKey(player.getUniqueId())) { // bad hack :P
                     long diff = System.currentTimeMillis() - tempSitBlock.get(player.getUniqueId());
-                    if (diff < 1000 * 2) {
+                    if (diff < 1000 * 1) {
                         return; //ignore
                     }
 
@@ -115,6 +149,7 @@ public class EventListener implements Listener {
                 }
 
                 this.plugin.closeChair(player);
+                this.tempJustStoodup.put(player.getUniqueId(), new TempData(System.currentTimeMillis(), player)); // bad hack
             }
         }
     }

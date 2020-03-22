@@ -1,0 +1,6 @@
+
+command.sit.description: "その場に座ります"
+command.sit.ingame: "§4ゲーム内で実行してください。"
+command.sit.ok: "§6座りました！ ジャンプすると立ち上がれます。"
+
+sit.tapwarp.atStair.ok: "§6ジャンプで立ち上がれます。"

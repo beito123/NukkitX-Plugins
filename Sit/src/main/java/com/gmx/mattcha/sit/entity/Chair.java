@@ -1,4 +1,4 @@
-package com.gmx.mattcha.sit;
+package com.gmx.mattcha.sit.entity;
 
 /*
 * Sit

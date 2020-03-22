@@ -4,4 +4,5 @@
 # no need
 /dist/*
 /.gradle/*
+/*/build/*
 *.cmd
