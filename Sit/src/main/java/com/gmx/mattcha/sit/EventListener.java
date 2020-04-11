@@ -54,6 +54,10 @@ public class EventListener implements Listener {
 
     @EventHandler
     public void onKick(PlayerKickEvent event) { // for bad hack
+        if (!this.plugin.enabledBadhackKickFlying) {
+            return;
+        }
+
         Player player = event.getPlayer();
         if (!this.tempJustStoodup.containsKey(player.getUniqueId())) {
             return;
