@@ -17,18 +17,19 @@ import cn.nukkit.entity.Entity;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.math.Vector3f;
 import cn.nukkit.nbt.tag.CompoundTag;
-import cn.nukkit.nbt.tag.DoubleTag;
-import cn.nukkit.nbt.tag.FloatTag;
-import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.Config;
+import cn.nukkit.utils.TextFormat;
 import com.gmx.mattcha.sit.entity.Chair;
+import com.gmx.mattcha.sit.event.PlayerSitEvent;
 import com.gmx.mattcha.sit.util.CustomMessage;
 
 import java.io.File;
 import java.util.*;
 
 public class MainClass extends PluginBase {
+
+    public final int LangFileVersion = 2;
 
     public CustomMessage msg;
 
@@ -37,23 +38,15 @@ public class MainClass extends PluginBase {
     public boolean enabledTapWarp;
     public boolean enabledBadhackKickFlying;
 
+    public Vector3 defaultSitPosition = new Vector3(0, 0F, 0);
+    public Vector3f defaultSitOffset = new Vector3f(0, 1.05F, 0);
+
     @Override
     public void onEnable() {
         // Save a lang file from resource
         List<String> langList = new ArrayList<>(Arrays.asList("eng", "jpn"));
 
-        String langName = "eng";
-        if (langList.contains(this.getServer().getLanguage().getLang())) {
-            langName = this.getServer().getLanguage().getLang();
-        }
-
-        this.saveResource("lang-" + langName + ".yml", "lang.yml", false);
-
-        // Load language file
-
-        Config langFile = new Config(new File(this.getDataFolder(), "lang.yml"));
-
-        this.msg = CustomMessage.FromSOMap(langFile.getAll());
+        this.msg = new CustomMessage(this, langList, "eng", LangFileVersion);
 
         // Load config file
 
@@ -66,6 +59,7 @@ public class MainClass extends PluginBase {
 
         Command cmdSit = Server.getInstance().getCommandMap().getCommand("sit");
         if (cmdSit != null) {
+            cmdSit.setUsage("/sit");
             cmdSit.setDescription(this.msg.getMessage("command.sit.description"));
         }
 
@@ -96,11 +90,17 @@ public class MainClass extends PluginBase {
 
         Player player = (Player) sender;
 
-        this.sitPlayer(player,
-                player.add(0, 1.11, 0), // adjust
-                new Vector3f(0, 0, 0));
+        if (this.hasSat(player)) {
+            this.closeChair(player);
+
+            this.msg.sendTip(player, "command.sit.standup");
+            return true;
+        }
+
+        this.sitPlayer(player, player.add(defaultSitPosition), defaultSitOffset);// adjust
 
         this.msg.sendTip(player, "command.sit.ok");
+        Server.getInstance().getLogger().info(TextFormat.BLUE + player.asVector3f().toString());
 
         return true;
     }
@@ -117,11 +117,21 @@ public class MainClass extends PluginBase {
             return;
         }
 
-        chair.dismountEntity(player);
+        this.usingChairs.remove(player.getUniqueId());
+
+        if (chair.isClosed()) {
+            return;
+        }
+
+        for (Entity passenger : new ArrayList<>(chair.getPassengers())) {
+            if (passenger == null) {
+                continue;
+            }
+
+            chair.dismountEntity(passenger);
+        }
 
         chair.close();
-
-        this.usingChairs.remove(player.getUniqueId());
     }
 
     public Chair getChair(Player player) {
@@ -132,31 +142,27 @@ public class MainClass extends PluginBase {
         return this.usingChairs.get(player.getUniqueId());
     }
 
-    public void sitPlayer(Player player, Vector3 pos, Vector3f offset) {
+    public boolean sitPlayer(Player player, Vector3 pos, Vector3f offset) {
         closeChair(player);
 
-        CompoundTag nbt = new CompoundTag()
-                .putList(new ListTag<DoubleTag>("Pos")
-                        .add(new DoubleTag("", pos.getX()))
-                        .add(new DoubleTag("", pos.getY()))
-                        .add(new DoubleTag("", pos.getZ())))
-                .putList(new ListTag<DoubleTag>("Motion")
-                        .add(new DoubleTag("", 0))
-                        .add(new DoubleTag("", 0))
-                        .add(new DoubleTag("", 0)))
-                .putList(new ListTag<FloatTag>("Rotation")
-                        .add(new FloatTag("", 0))
-                        .add(new FloatTag("", 0)));
+        PlayerSitEvent ev;
+        Server.getInstance().getPluginManager().callEvent(ev = new PlayerSitEvent(this, player));
+        if (ev.isCancelled()) {
+            return false;
+        }
+        CompoundTag nbt = Entity.getDefaultNBT(pos, new Vector3(), (float) player.getYaw(), 0);
 
         Chair chair = (Chair) Entity.createEntity("Chair", player.chunk, nbt);
 
+        chair.MountedOffset = offset;
+        chair.setSeatPosition(new Vector3f(0, 0, 0)); // is not applied...
+
         chair.spawnToAll();
-
-        chair.setSeatPosition(offset);
-
         chair.mountEntity(player);
 
         this.usingChairs.put(player.getUniqueId(), chair);
+
+        return true;
     }
 
     public void standupPlayer(Player player) {

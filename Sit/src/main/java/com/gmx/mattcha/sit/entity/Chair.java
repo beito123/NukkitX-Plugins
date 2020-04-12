@@ -12,14 +12,14 @@ package com.gmx.mattcha.sit.entity;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.EntityRideable;
 import cn.nukkit.entity.data.EntityMetadata;
-import cn.nukkit.entity.projectile.EntityEgg;
+import cn.nukkit.entity.item.EntityItem;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.math.Vector3f;
 import cn.nukkit.nbt.tag.CompoundTag;
 
 public class Chair extends Entity implements EntityRideable {
 
-    public int NETWORK_ID = EntityEgg.NETWORK_ID;
+    public int NETWORK_ID = EntityItem.NETWORK_ID;
     public Vector3f MountedOffset = new Vector3f();
 
     private EntityMetadata defaultProperties = new EntityMetadata()
@@ -28,10 +28,17 @@ public class Chair extends Entity implements EntityRideable {
 
     public Chair(FullChunk chunk, CompoundTag nbt) {
         super(chunk, nbt);
+        this.setDataFlag(DATA_FLAGS, DATA_FLAG_NO_AI);
+        this.setDataFlag(DATA_FLAGS, DATA_FLAG_INVISIBLE);
 
         if (namedTag.exist("remove")) {
             this.close();
         }
+    }
+
+    @Override
+    public boolean canCollide() {
+        return false;
     }
 
     @Override
@@ -46,19 +53,7 @@ public class Chair extends Entity implements EntityRideable {
     }
 
     @Override
-    public boolean dismountEntity(Entity entity) {
-        boolean result = super.dismountEntity(entity);
-
-        if (this.passengers.size() == 0) {
-            this.close();
-        }
-
-        return result;
-    }
-
-    @Override
     public Vector3f getMountedOffset(Entity entity) {
         return this.MountedOffset;
     }
-
 }

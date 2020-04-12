@@ -1,8 +1,6 @@
 subprojects {
     apply plugin: 'java'
 
-
-
     sourceCompatibility = 1.8
 
     def out = project.hasProperty('out') ? project.out : '../dist'
