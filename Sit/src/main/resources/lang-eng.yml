@@ -1,7 +1,0 @@
-version: 2
-command.sit.description: "Sit here"
-command.sit.ingame: "§4Please run the command in game"
-command.sit.ok: "§6Sit here! Jump to stand up."
-command.sit.standup: "§6Stood up."
-
-sit.tapwarp.atStair.ok: "§6Jump to stand up."

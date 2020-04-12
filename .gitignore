@@ -1,8 +1,0 @@
-# for IntelliJ IDEA
-/.idea/*
-
-# no need
-/dist/*
-/.gradle/*
-/*/build/*
-*.cmd
