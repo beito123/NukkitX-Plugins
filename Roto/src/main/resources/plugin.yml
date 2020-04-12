@@ -1,0 +1,29 @@
+name: Roto
+version: 1.0.0
+description: "a development tool"
+author: beito3
+api: ["1.0.9"]
+main: com.gmx.mattcha.roto.MainClass
+load: STARTUP
+
+commands:
+  roto:
+    description: "roto main commands"
+    usage: "/roto help"
+    permission: roto.command.roto
+    aliases: ["r"]
+  npc:
+    description: "make npc"
+    usage: "/npc help"
+    permission: roto.command.npc
+    aliases: ["n"]
+
+permissions:
+  roto:
+    children:
+      roto.command:
+        children:
+          roto.command.roto:
+            default: true
+          roto.command.npc:
+            default: true

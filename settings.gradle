@@ -1,3 +1,4 @@
-rootProject.name = 'nukkitx-plugins'
 
 include "Sit"
+include 'Roto'
+

@@ -18,7 +18,6 @@ import cn.nukkit.event.entity.EntityDespawnEvent;
 import cn.nukkit.event.player.*;
 import cn.nukkit.event.server.DataPacketReceiveEvent;
 import cn.nukkit.level.Position;
-import cn.nukkit.math.Vector3f;
 import cn.nukkit.network.protocol.InteractPacket;
 import cn.nukkit.network.protocol.ProtocolInfo;
 import com.gmx.mattcha.sit.entity.Chair;
@@ -87,15 +86,15 @@ public class EventListener implements Listener {
         }
 
         Player player = event.getPlayer();
-        if (!this.plugin.hasSat(player)) {
+        if (!SitAPI.getInstance().hasSat(player)) {
             return;
         }
 
         Block block = event.getBlock();
         if (block instanceof BlockStairs && (block.getDamage() & 0x04) == 0) {
-            this.plugin.sitPlayer(player,
-                    block.add(0.5, 0, 0.5),
-                    new Vector3f(0 , 1.58F, 0));
+            SitAPI.getInstance().sitEntity(player,
+                    block.add(SitAPI.getInstance().defaultSitStairPosition),
+                    SitAPI.getInstance().defaultSitStairOffset);
 
             this.plugin.msg.sendTip(player, "sit.tapwarp.atStair.ok");
         }
@@ -103,9 +102,7 @@ public class EventListener implements Listener {
 
     @EventHandler
     public void onDespawn(EntityDespawnEvent event) {
-        if (event.getEntity() instanceof Player) {
-            this.plugin.closeChair((Player) event.getEntity());
-        }
+        SitAPI.getInstance().closeChair(event.getEntity());
     }
 
     @EventHandler
@@ -114,7 +111,7 @@ public class EventListener implements Listener {
             return;
         }
 
-        this.plugin.closeChair(event.getEntity());
+        SitAPI.getInstance().closeChair(event.getEntity());
     }
 
     @EventHandler
@@ -123,7 +120,7 @@ public class EventListener implements Listener {
             return;
         }
 
-        this.plugin.closeChair(event.getPlayer());
+        SitAPI.getInstance().closeChair(event.getPlayer());
     }
 
     @EventHandler
@@ -132,7 +129,7 @@ public class EventListener implements Listener {
             return;
         }
 
-        this.plugin.closeChair(event.getPlayer());
+        SitAPI.getInstance().closeChair(event.getPlayer());
     }
 
     @EventHandler
@@ -143,7 +140,7 @@ public class EventListener implements Listener {
 
         Player player = event.getPlayer();
 
-        Chair chair = this.plugin.getChair(player);
+        Chair chair = SitAPI.getInstance().getChair(player);
         if (chair == null) {
             return;
         }
@@ -168,7 +165,7 @@ public class EventListener implements Listener {
         if (event.getPacket().pid() == ProtocolInfo.INTERACT_PACKET) {
             Player player = event.getPlayer();
 
-            if (!this.plugin.hasSat(player)) {
+            if (!SitAPI.getInstance().hasSat(player)) {
                 return;
             }
 
@@ -184,7 +181,7 @@ public class EventListener implements Listener {
                     tempSit.remove(player.getUniqueId());
                 }
 
-                this.plugin.closeChair(player);
+                SitAPI.getInstance().closeChair(player);
                 this.tempJustStoodup.put(player.getUniqueId(), new TempData(System.currentTimeMillis(), player)); // bad hack
             }
         }

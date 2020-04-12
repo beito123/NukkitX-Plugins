@@ -14,18 +14,15 @@ import cn.nukkit.Server;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
 import cn.nukkit.entity.Entity;
-import cn.nukkit.math.Vector3;
-import cn.nukkit.math.Vector3f;
-import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.plugin.PluginBase;
 import cn.nukkit.utils.Config;
-import cn.nukkit.utils.TextFormat;
 import com.gmx.mattcha.sit.entity.Chair;
-import com.gmx.mattcha.sit.event.PlayerSitEvent;
 import com.gmx.mattcha.sit.util.CustomMessage;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class MainClass extends PluginBase {
 
@@ -33,13 +30,10 @@ public class MainClass extends PluginBase {
 
     public CustomMessage msg;
 
-    private Map<UUID, Chair> usingChairs = new HashMap<>();
-
     public boolean enabledTapWarp;
     public boolean enabledBadhackKickFlying;
 
-    public Vector3 defaultSitPosition = new Vector3(0, 0F, 0);
-    public Vector3f defaultSitOffset = new Vector3f(0, 1.05F, 0);
+    private SitAPI sitAPI;
 
     @Override
     public void onEnable() {
@@ -68,13 +62,15 @@ public class MainClass extends PluginBase {
 
         // Listen events
         this.getServer().getPluginManager().registerEvents(new EventListener(this), this);
+
+        // Ready API
+        this.sitAPI = new SitAPI(this);
     }
 
     @Override
     public void onDisable() {
-        for (Map.Entry<UUID, Chair> entry : usingChairs.entrySet()) {
-            entry.getValue().close();
-        }
+        // close all chairs
+        SitAPI.getInstance().closeAllChairs();
     }
 
     @Override
@@ -90,82 +86,17 @@ public class MainClass extends PluginBase {
 
         Player player = (Player) sender;
 
-        if (this.hasSat(player)) {
-            this.closeChair(player);
+        if (SitAPI.getInstance().hasSat(player)) {
+            this.sitAPI.closeChair(player);
 
             this.msg.sendTip(player, "command.sit.standup");
             return true;
         }
 
-        this.sitPlayer(player, player.add(defaultSitPosition), defaultSitOffset);// adjust
+        this.sitAPI.sitEntity(player);
 
         this.msg.sendTip(player, "command.sit.ok");
-        Server.getInstance().getLogger().info(TextFormat.BLUE + player.asVector3f().toString());
 
         return true;
-    }
-
-    // API
-
-    public boolean hasSat(Player player) {
-        return this.usingChairs.containsKey(player.getUniqueId());
-    }
-
-    public void closeChair(Player player) {
-        Chair chair = this.getChair(player);
-        if (chair == null) {
-            return;
-        }
-
-        this.usingChairs.remove(player.getUniqueId());
-
-        if (chair.isClosed()) {
-            return;
-        }
-
-        for (Entity passenger : new ArrayList<>(chair.getPassengers())) {
-            if (passenger == null) {
-                continue;
-            }
-
-            chair.dismountEntity(passenger);
-        }
-
-        chair.close();
-    }
-
-    public Chair getChair(Player player) {
-        if (!this.hasSat(player)) {
-            return null;
-        }
-
-        return this.usingChairs.get(player.getUniqueId());
-    }
-
-    public boolean sitPlayer(Player player, Vector3 pos, Vector3f offset) {
-        closeChair(player);
-
-        PlayerSitEvent ev;
-        Server.getInstance().getPluginManager().callEvent(ev = new PlayerSitEvent(this, player));
-        if (ev.isCancelled()) {
-            return false;
-        }
-        CompoundTag nbt = Entity.getDefaultNBT(pos, new Vector3(), (float) player.getYaw(), 0);
-
-        Chair chair = (Chair) Entity.createEntity("Chair", player.chunk, nbt);
-
-        chair.MountedOffset = offset;
-        chair.setSeatPosition(new Vector3f(0, 0, 0)); // is not applied...
-
-        chair.spawnToAll();
-        chair.mountEntity(player);
-
-        this.usingChairs.put(player.getUniqueId(), chair);
-
-        return true;
-    }
-
-    public void standupPlayer(Player player) {
-        closeChair(player);
     }
 }
